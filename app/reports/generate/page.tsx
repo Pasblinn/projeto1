@@ -26,8 +26,9 @@ export default function GenerateReportPage() {
   const [selectedScanId, setSelectedScanId] = useState<string>("")
 
   useEffect(() => {
-    // Carregar análises disponíveis
-    const availableScans = getAllScans().filter((scan) => scan.status === "Completo")
+    // Carregar todas as análises disponíveis
+    const availableScans = getAllScans()
+    console.log('Todas as análises:', availableScans)
     setScans(availableScans)
 
     // Verificar se há um ID de análise na URL
@@ -201,19 +202,19 @@ export default function GenerateReportPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="scan">Análise</Label>
-                  <Select value={selectedScanId} onValueChange={setSelectedScanId} required>
-                    <SelectTrigger>
+                  <Select value={selectedScanId} onValueChange={setSelectedScanId}>
+                    <SelectTrigger id="scan">
                       <SelectValue placeholder="Selecione uma análise" />
                     </SelectTrigger>
                     <SelectContent>
                       {scans.length === 0 ? (
-                        <SelectItem value="none" disabled>
-                          Nenhuma análise concluída disponível
+                        <SelectItem value="empty" disabled>
+                          Nenhuma análise disponível
                         </SelectItem>
                       ) : (
                         scans.map((scan) => (
                           <SelectItem key={scan.id} value={scan.id}>
-                            {scan.name} ({scan.date})
+                            {scan.name} ({scan.location}) - {scan.status}
                           </SelectItem>
                         ))
                       )}
@@ -221,9 +222,12 @@ export default function GenerateReportPage() {
                   </Select>
                   {scans.length === 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Você precisa concluir pelo menos uma análise antes de gerar um relatório.
+                      Nenhuma análise encontrada. Crie uma nova análise primeiro.
                     </p>
                   )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total de análises disponíveis: {scans.length}
+                  </p>
                 </div>
 
                 <div className="space-y-2">

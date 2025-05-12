@@ -1,4 +1,4 @@
-import { ReportsClientPage } from "./client-page"
+import ReportsClientPage from "./client-page"
 
 export default function ReportsPage() {
   return <ReportsClientPage />

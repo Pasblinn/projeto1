@@ -18,6 +18,25 @@ export function HeatmapCanvas({ scanId, viewMode, zoomLevel }: HeatmapCanvasProp
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
 
+  // Function to generate heatmap points
+  function generateHeatmapPoints() {
+    const width = 800
+    const height = 600
+    const points = []
+    const numPoints = 50
+
+    for (let i = 0; i < numPoints; i++) {
+      points.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        value: Math.random() * 100,
+        radius: 50 + Math.random() * 100,
+      })
+    }
+
+    return points
+  }
+
   // Simulated data for the heatmap
   const heatmapData = {
     width: 800,
@@ -176,22 +195,6 @@ export function HeatmapCanvas({ scanId, viewMode, zoomLevel }: HeatmapCanvasProp
     } else {
       return `rgba(16, 185, 129, ${alpha})` // Green
     }
-  }
-
-  function generateHeatmapPoints() {
-    const points = []
-    const numPoints = 50
-
-    for (let i = 0; i < numPoints; i++) {
-      points.push({
-        x: Math.random() * heatmapData.width,
-        y: Math.random() * heatmapData.height,
-        value: Math.random() * 100,
-        radius: 50 + Math.random() * 100,
-      })
-    }
-
-    return points
   }
 
   function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {

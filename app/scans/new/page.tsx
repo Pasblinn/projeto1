@@ -40,14 +40,16 @@ export default function NewScanPage() {
 
     try {
       // Criar nova análise usando localStorage
-      createScan({
+      const newScan = createScan({
         name,
         location,
         description,
         date,
         time,
-        status: "Em andamento",
+        status: "Completo",
       })
+
+      console.log('Nova análise criada:', newScan)
 
       toast({
         title: "Análise criada com sucesso",
