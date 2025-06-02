@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,31 +9,35 @@ import { Wifi, Search, FileText, Download, Calendar, MoreHorizontal, Trash2 } fr
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { useData } from "@/components/data-provider"
-import { deleteReport } from "@/lib/storage"
+import { getReports, deleteReport } from "@/lib/reports"
 import { toast } from "@/components/ui/use-toast"
+import type { WifiRelatorio } from "@/lib/supabase"
 
 export default function ReportsClientPage() {
-  const { reports, refreshReports } = useData()
+  const [reports, setReports] = useState<WifiRelatorio[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    getReports().then((data) => setReports(data || []))
+  }, [])
 
   // Filtrar relatórios com base no termo de busca
   const filteredReports = reports.filter(
     (report) =>
-      report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.scanName.toLowerCase().includes(searchTerm.toLowerCase()),
+      (report.relatorio_nome || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (report.relatorio_tipo || "").toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleDeleteReport = (id: string) => {
+  const handleDeleteReport = async (id: number) => {
     if (window.confirm("Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita.")) {
-      const success = deleteReport(id)
-      if (success) {
-        refreshReports()
+      try {
+        await deleteReport(id)
+        setReports(await getReports())
         toast({
           title: "Relatório excluído",
           description: "O relatório foi excluído com sucesso.",
         })
-      } else {
+      } catch {
         toast({
           title: "Erro ao excluir",
           description: "Não foi possível excluir o relatório. Tente novamente.",
@@ -122,29 +126,27 @@ export default function ReportsClientPage() {
                         <TableHead>Nome</TableHead>
                         <TableHead>Data</TableHead>
                         <TableHead>Tipo</TableHead>
-                        <TableHead>Análise</TableHead>
-                        <TableHead className="w-[100px]"></TableHead>
+                        <TableHead>Análise (ID)</TableHead>
+                        <TableHead className="w-[100px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredReports.map((report) => (
                         <TableRow key={report.id}>
                           <TableCell className="font-medium">
-                            <Link href={`/reports/${report.id}`} className="hover:underline">
-                              {report.name}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {report.date}
+                            {report.relatorio_nome}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{report.type}</Badge>
+                            <span className="inline-flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {report.created_at ? new Date(report.created_at).toLocaleDateString() : "-"}
+                            </span>
                           </TableCell>
                           <TableCell>
-                            <Link href={`/scans/${report.scanId}`} className="hover:underline">
-                              {report.scanName}
-                            </Link>
+                            <Badge variant="outline">{report.relatorio_tipo || '-'}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {report.relatorio_analise_id || '-'}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

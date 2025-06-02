@@ -10,25 +10,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { useData } from "@/components/data-provider"
-import { deleteScan } from "@/lib/storage"
 import { toast } from "@/components/ui/use-toast"
+import { WifiAnalise } from "@/lib/supabase"
 
-export default function ScansClientPage() {
-  const { scans, refreshScans } = useData()
+interface ScansClientPageProps {
+  initialScans: WifiAnalise[]
+}
+
+export default function ScansClientPage({ initialScans }: ScansClientPageProps) {
+  const { scans, refreshScans, deleteScan } = useData()
   const [searchTerm, setSearchTerm] = useState("")
 
   // Filtrar scans com base no termo de busca
   const filteredScans = scans.filter(
     (scan) =>
-      scan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      scan.location.toLowerCase().includes(searchTerm.toLowerCase()),
+      scan.analise_nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      scan.analise_local.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleDeleteScan = (id: string) => {
+  const handleDeleteScan = async (id: number) => {
     if (window.confirm("Tem certeza que deseja excluir esta análise? Esta ação não pode ser desfeita.")) {
-      const success = deleteScan(id)
+      const success = await deleteScan(id)
       if (success) {
-        refreshScans()
         toast({
           title: "Análise excluída",
           description: "A análise foi excluída com sucesso.",
@@ -122,10 +125,9 @@ export default function ScansClientPage() {
                         <TableHead>Nome</TableHead>
                         <TableHead>Data</TableHead>
                         <TableHead>Local</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Redes</TableHead>
-                        <TableHead>Problemas</TableHead>
-                        <TableHead className="w-[80px]"></TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Ambiente</TableHead>
+                        <TableHead className="w-[80px] text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -133,39 +135,24 @@ export default function ScansClientPage() {
                         <TableRow key={scan.id}>
                           <TableCell className="font-medium">
                             <Link href={`/scans/${scan.id}`} className="hover:underline">
-                              {scan.name}
+                              {scan.analise_nome}
                             </Link>
                           </TableCell>
-                          <TableCell className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {scan.date}
-                          </TableCell>
-                          <TableCell className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            {scan.location}
+                          <TableCell>
+                            <span className="inline-flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {new Date(scan.created_at).toLocaleDateString()}
+                            </span>
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={scan.status === "Completo" ? "default" : "outline"}
-                              className={scan.status === "Completo" ? "bg-green-500 hover:bg-green-500/80" : ""}
-                            >
-                              {scan.status}
-                            </Badge>
+                            <span className="inline-flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              {scan.analise_local || '-'}
+                            </span>
                           </TableCell>
-                          <TableCell>{scan.networks.length}</TableCell>
-                          <TableCell>
-                            {scan.issues.length > 0 ? (
-                              <Badge variant="destructive">{scan.issues.length}</Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-500"
-                              >
-                                0
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
+                          <TableCell>{scan.analise_tipo || '-'}</TableCell>
+                          <TableCell>{scan.analise_ambiente || '-'}</TableCell>
+                          <TableCell align="center">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">

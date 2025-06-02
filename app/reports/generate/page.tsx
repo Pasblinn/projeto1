@@ -13,42 +13,34 @@ import { Textarea } from "@/components/ui/textarea"
 import { Wifi, ArrowLeft } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { createReport, getAllScans } from "@/lib/storage"
-import { useData } from "@/components/data-provider"
-import type { NetworkScan } from "@/lib/storage"
+import { getScans } from "@/lib/scans"
+import { createReport } from "@/lib/reports"
+import type { WifiAnalise } from "@/lib/supabase"
 
 export default function GenerateReportPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { refreshReports } = useData()
   const [isLoading, setIsLoading] = useState(false)
-  const [scans, setScans] = useState<NetworkScan[]>([])
+  const [scans, setScans] = useState<WifiAnalise[]>([])
   const [selectedScanId, setSelectedScanId] = useState<string>("")
 
   useEffect(() => {
-    // Carregar todas as análises disponíveis
-    const availableScans = getAllScans()
-    console.log('Todas as análises:', availableScans)
-    setScans(availableScans)
-
-    // Verificar se há um ID de análise na URL
+    getScans().then((data) => setScans(data || []))
     const scanId = searchParams.get("scan")
-    if (scanId) {
-      setSelectedScanId(scanId)
-    }
+    if (scanId) setSelectedScanId(scanId)
   }, [searchParams])
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsLoading(true)
 
     const formData = new FormData(event.currentTarget)
-    const name = formData.get("name") as string
-    const type = formData.get("type") as string
-    const notes = (formData.get("notes") as string) || ""
+    const relatorio_nome = formData.get("relatorio_nome") as string
+    const relatorio_tipo = formData.get("relatorio_tipo") as string
+    const relatorio_notas = (formData.get("relatorio_notas") as string) || ""
+    const relatorio_analise_id = selectedScanId ? Number(selectedScanId) : null
 
-    // Verificar se uma análise foi selecionada
-    if (!selectedScanId) {
+    if (!relatorio_analise_id) {
       toast({
         title: "Selecione uma análise",
         description: "Por favor, selecione uma análise para gerar o relatório.",
@@ -58,87 +50,17 @@ export default function GenerateReportPage() {
       return
     }
 
-    // Encontrar a análise selecionada
-    const selectedScan = scans.find((scan) => scan.id === selectedScanId)
-    if (!selectedScan) {
-      toast({
-        title: "Análise não encontrada",
-        description: "A análise selecionada não foi encontrada.",
-        variant: "destructive",
-      })
-      setIsLoading(false)
-      return
-    }
-
     try {
-      // Criar o relatório
-      const now = new Date()
-      const date = now.toLocaleDateString("pt-BR")
-
-      // Gerar conteúdo do relatório (simplificado para este exemplo)
-      const content = `
-        # Relatório: ${name}
-        
-        Data: ${date}
-        Tipo: ${type}
-        Análise: ${selectedScan.name}
-        
-        ## Detalhes da Análise
-        
-        Local: ${selectedScan.location}
-        Data da Análise: ${selectedScan.date}
-        
-        ## Redes Detectadas (${selectedScan.networks.length})
-        
-        ${selectedScan.networks
-          .map(
-            (network) => `
-        - SSID: ${network.ssid}
-          - Canal: ${network.channel}
-          - Força do Sinal: ${network.signalStrength}%
-          - Segurança: ${network.security}
-          - Fabricante: ${network.vendor || "Desconhecido"}
-        `,
-          )
-          .join("\n")}
-        
-        ## Problemas Detectados (${selectedScan.issues.length})
-        
-        ${selectedScan.issues
-          .map(
-            (issue) => `
-        - Tipo: ${issue.type}
-          - Severidade: ${issue.severity}
-          - Descrição: ${issue.description}
-          - Recomendação: ${issue.recommendation}
-        `,
-          )
-          .join("\n")}
-        
-        ## Notas Adicionais
-        
-        ${notes || "Nenhuma nota adicional."}
-      `
-
-      // Criar o relatório no armazenamento
-      createReport({
-        name,
-        date,
-        type,
-        scanId: selectedScan.id,
-        scanName: selectedScan.name,
-        content,
+      await createReport({
+        relatorio_nome,
+        relatorio_analise_id,
+        relatorio_tipo,
+        relatorio_notas,
       })
-
-      // Atualizar a lista de relatórios
-      refreshReports()
-
       toast({
         title: "Relatório gerado com sucesso",
         description: "O relatório foi gerado e está disponível para visualização.",
       })
-
-      // Redirecionar para a lista de relatórios
       router.push("/reports")
     } catch (error) {
       toast({
@@ -196,70 +118,52 @@ export default function GenerateReportPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome do Relatório</Label>
-                  <Input id="name" name="name" placeholder="Ex: Relatório Completo - Escritório Principal" required />
+                  <Label htmlFor="relatorio_nome">Nome do Relatório</Label>
+                  <Input id="relatorio_nome" name="relatorio_nome" required />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="scan">Análise</Label>
-                  <Select value={selectedScanId} onValueChange={setSelectedScanId}>
-                    <SelectTrigger id="scan">
-                      <SelectValue placeholder="Selecione uma análise" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {scans.length === 0 ? (
-                        <SelectItem value="empty" disabled>
-                          Nenhuma análise disponível
-                        </SelectItem>
-                      ) : (
-                        scans.map((scan) => (
-                          <SelectItem key={scan.id} value={scan.id}>
-                            {scan.name} ({scan.location}) - {scan.status}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {scans.length === 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Nenhuma análise encontrada. Crie uma nova análise primeiro.
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Total de análises disponíveis: {scans.length}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="type">Tipo de Relatório</Label>
-                  <Select name="type" defaultValue="Completo">
+                  <Label htmlFor="relatorio_tipo">Tipo do Relatório</Label>
+                  <Select name="relatorio_tipo" required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo de relatório" />
+                      <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Completo">Completo</SelectItem>
-                      <SelectItem value="Problemas">Problemas</SelectItem>
-                      <SelectItem value="Cobertura">Cobertura</SelectItem>
-                      <SelectItem value="Desempenho">Desempenho</SelectItem>
+                      <SelectItem value="completo">Completo</SelectItem>
+                      <SelectItem value="resumido">Resumido</SelectItem>
+                      <SelectItem value="personalizado">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notas Adicionais (opcional)</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Adicione observações ou notas adicionais para o relatório..."
-                    rows={4}
-                  />
+                  <Label htmlFor="relatorio_analise_id">Análise</Label>
+                  <Select
+                    name="relatorio_analise_id"
+                    value={selectedScanId}
+                    onValueChange={setSelectedScanId}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a análise" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {scans.map((scan) => (
+                        <SelectItem key={scan.id} value={scan.id.toString()}>
+                          {scan.analise_nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="relatorio_notas">Notas</Label>
+                  <Textarea id="relatorio_notas" name="relatorio_notas" rows={4} />
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
+              <CardFooter className="flex justify-end gap-4">
                 <Button variant="outline" asChild>
                   <Link href="/reports">Cancelar</Link>
                 </Button>
-                <Button type="submit" disabled={isLoading || scans.length === 0}>
+                <Button type="submit" disabled={isLoading}>
                   {isLoading ? "Gerando..." : "Gerar Relatório"}
                 </Button>
               </CardFooter>

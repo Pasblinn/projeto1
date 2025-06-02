@@ -2,23 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
-const data = [
-  { channel: "1", networks: 4 },
-  { channel: "2", networks: 1 },
-  { channel: "3", networks: 0 },
-  { channel: "4", networks: 0 },
-  { channel: "5", networks: 0 },
-  { channel: "6", networks: 5 },
-  { channel: "7", networks: 1 },
-  { channel: "8", networks: 0 },
-  { channel: "9", networks: 0 },
-  { channel: "10", networks: 0 },
-  { channel: "11", networks: 3 },
-  { channel: "12", networks: 0 },
-  { channel: "13", networks: 0 },
-]
-
-export function ChannelUtilizationChart() {
+export function ChannelUtilizationChart({ data }: { data: { channel: string, networks: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart

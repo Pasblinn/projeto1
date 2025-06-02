@@ -2,16 +2,9 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 
-const data = [
-  { name: "Excelente", value: 35 },
-  { name: "Bom", value: 40 },
-  { name: "Regular", value: 15 },
-  { name: "Fraco", value: 10 },
-]
-
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444"]
 
-export function SignalStrengthChart() {
+export function SignalStrengthChart({ data }: { data: { name: string, value: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={250}>
       <PieChart>

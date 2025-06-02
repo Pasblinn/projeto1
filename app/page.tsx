@@ -56,7 +56,7 @@ export default function Home() {
               <div className="mx-auto lg:mr-0 lg:ml-auto">
                 <div className="aspect-video overflow-hidden rounded-xl border bg-background">
                   <img
-                    src="/placeholder.svg?height=500&width=800"
+                    src="/NetSpot_signal_level.webp"
                     alt="WiFi Heatmap Preview"
                     className="object-cover w-full"
                     width={800}
